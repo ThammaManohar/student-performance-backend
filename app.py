@@ -81,7 +81,8 @@ PASS_THRESHOLD = 65
 # Helper: Load trained models and columns
 @st.cache_resource
 def load_models_and_meta():
-    model_path = "student_performance_models.pkl"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(base_dir, "student_performance_models.pkl")
     if not os.path.exists(model_path):
         return None
     with open(model_path, "rb") as f:
@@ -286,39 +287,48 @@ with tab1:
         areas_to_improve.append(f"Foundational skills show vulnerability due to low past semester results ({prev_scores}%).")
         actions.append("Begin reviews from primary baseline topics, solidifying fundamental concepts before tackling advanced work.")
 
-    # Enforce minimums for areas and actions
+    # Enforce minimums for areas and actions to ensure they always render the full number of required suggestions
     if len(areas_to_improve) < 2:
         areas_to_improve.append("Sleep routine represents a vital biological baseline that must be guarded alongside study routines.")
+    if len(areas_to_improve) < 2:
+        areas_to_improve.append("Work on balancing academic focus with physical activity and personal wellness to prevent study burnout.")
+        
+    if len(actions) < 3:
         actions.append("Maintain an organized biological calendar, securing 7 to 8 hours of sleep each night to maximize mental acuity.")
     if len(actions) < 3:
         actions.append("Work on practice tests under timed conditions to improve exam confidence and performance.")
+    if len(actions) < 3:
+        actions.append("Break up long revision subjects into shorter, bite-sized study sessions to maintain motivation.")
+
+    # Pre-render list items safely to avoid any nested quotes and ensure robust HTML rendering
+    strengths_html = "".join([f"<li>{item}</li>" for item in strengths[:2]]) if strengths else "<li>No specific strengths highlighted currently.</li>"
+    areas_html = "".join([f"<li>{item}</li>" for item in areas_to_improve[:2]]) if areas_to_improve else "<li>No specific areas for growth identified.</li>"
+    actions_html = "".join([f"<li>{item}</li>" for item in actions[:3]]) if actions else "<li>No specific actions recommended.</li>"
 
     # Render Report
     report_col, chart_col = st.columns([3, 2])
     
     with report_col:
-        st.markdown(f"""
-        <div style='background-color:#ffffff; border: 1px solid #e2e8f0; border-radius:12px; padding:25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);'>
-            <h4 style='color:#0f4c5c; margin-top:0;'>🛡️ Strengths & Pillars</h4>
-            <ul style='padding-left: 20px; font-size:1.02rem; line-height:1.6;'>
-                <li>{"</li><li>".join(strengths[:2])}</li>
-            </ul>
-            
-            <h4 style='color:#e36414; margin-top:20px;'>⚠️ Areas for Growth</h4>
-            <ul style='padding-left: 20px; font-size:1.02rem; line-height:1.6;'>
-                <li>{"</li><li>".join(areas_to_improve[:2])}</li>
-            </ul>
-            
-            <h4 style='color:#1e6091; margin-top:20px;'>🚀 Recommended Action Plan</h4>
-            <ol style='padding-left: 20px; font-size:1.02rem; line-height:1.6;'>
-                <li>{"</li><li>".join(actions[:3])}</li>
-            </ol>
-            
-            <p style='font-size:0.88rem; color:#718096; font-style:italic; margin-top:25px;'>
-                Note: This AI diagnostic evaluation report utilizes our statistically-validated machine learning models to analyze behavioral patterns. It is designed to act as supportive coaching guidance for teachers, parents, and students.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div style='background-color:#ffffff; border: 1px solid #e2e8f0; border-radius:12px; padding:25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);'>
+<h4 style='color:#0f4c5c; margin-top:0;'>🛡️ Strengths & Pillars</h4>
+<ul style='padding-left: 20px; font-size:1.02rem; line-height:1.6;'>
+{strengths_html}
+</ul>
+
+<h4 style='color:#e36414; margin-top:20px;'>⚠️ Areas for Growth</h4>
+<ul style='padding-left: 20px; font-size:1.02rem; line-height:1.6;'>
+{areas_html}
+</ul>
+
+<h4 style='color:#1e6091; margin-top:20px;'>🚀 Recommended Action Plan</h4>
+<ol style='padding-left: 20px; font-size:1.02rem; line-height:1.6;'>
+{actions_html}
+</ol>
+
+<p style='font-size:0.88rem; color:#718096; font-style:italic; margin-top:25px;'>
+Note: This AI diagnostic evaluation report utilizes our statistically-validated machine learning models to analyze behavioral patterns. It is designed to act as supportive coaching guidance for teachers, parents, and students.
+</p>
+</div>""", unsafe_allow_html=True)
         
     with chart_col:
         # Display a beautiful dial chart or donut chart of pass probability
@@ -445,8 +455,10 @@ with tab3:
     # Load dataset
     @st.cache_data
     def load_clean_data():
-        if os.path.exists("cleaned_student_performance.csv"):
-            return pd.read_csv("cleaned_student_performance.csv")
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        data_path = os.path.join(base_dir, "cleaned_student_performance.csv")
+        if os.path.exists(data_path):
+            return pd.read_csv(data_path)
         return None
         
     df_clean = load_clean_data()
